@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <GridLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:columnCount="3"
+        android:rowCount="3"
+        android:layout_gravity="center">
+
+        <!-- Top-left button -->
+        <Button
+            android:id="@+id/top_left"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="TL"
+            android:layout_gravity="center"/>
+
+        <!-- Top-center button -->
+        <Button
+            android:id="@+id/top_center"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="TC"
+            android:layout_gravity="center"/>
+
+        <!-- Top-right button -->
+        <Button
+            android:id="@+id/top_right"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="TR"
+            android:layout_gravity="center"/>
+
+        <!-- Center-left button -->
+        <Button
+            android:id="@+id/center_left"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="CL"
+            android:layout_gravity="center"/>
+
+        <!-- Center button -->
+        <Button
+            android:id="@+id/center"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="C"
+            android:layout_gravity="center"/>
+
+        <!-- Center-right button -->
+        <Button
+            android:id="@+id/center_right"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="CR"
+            android:layout_gravity="center"/>
+
+        <!-- Bottom-left button -->
+        <Button
+            android:id="@+id/bottom_left"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="BL"
+            android:layout_gravity="center"/>
+
+        <!-- Bottom-center button -->
+        <Button
+            android:id="@+id/bottom_center"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="BC"
+            android:layout_gravity="center"/>
+
+        <!-- Bottom-right button -->
+        <Button
+            android:id="@+id/bottom_right"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="BR"
+            android:layout_gravity="center"/>
+    </GridLayout>
+</LinearLayout>

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".Principal">
+
+    <!-- ImageView centrado para el logo -->
+    <ImageView
+        android:id="@+id/logoImageView"
+        android:layout_width="125dp"
+        android:layout_height="138dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.05"
+        app:srcCompat="@drawable/logo_sf" />
+
+    <!-- LinearLayout para los ImageViews horizontales -->
+    <LinearLayout
+        android:id="@+id/linear_layout_images"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="8dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/logoImageView" />
+
+    <!-- Contenedor para los botones -->
+    <LinearLayout
+        android:id="@+id/button_container"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/linear_layout_images">
+
+        <!-- Botón para cargar imágenes desde la galería -->
+        <Button
+            android:id="@+id/btn_cargar_imagenes"
+            android:layout_width="139dp"
+            android:layout_height="40dp"
+            android:text="Cargar" />
+
+        <!-- Botón para colocar la marca de agua -->
+        <Button
+            android:id="@+id/btn_colocar"
+            android:layout_width="126dp"
+            android:layout_height="45dp"
+            android:layout_marginTop="16dp"
+            android:text="Colocar" />
+
+        <!-- Botón para descargar las imágenes -->
+        <Button
+            android:id="@+id/btn_descargar"
+            android:layout_width="126dp"
+            android:layout_height="43dp"
+            android:layout_marginTop="16dp"
+            android:text="Descargar" />
+    </LinearLayout>
+
+    <!-- RecyclerView para mostrar las imágenes -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler_view"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/button_container"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

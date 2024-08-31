@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">WaterMarkApp</string>
+    <string name="cargar_imagenes">Cargar Imágenes</string>
+    <!-- Otras cadenas que tengas -->
+</resources>
