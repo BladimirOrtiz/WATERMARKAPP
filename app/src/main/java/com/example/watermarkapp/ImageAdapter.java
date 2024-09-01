@@ -60,6 +60,8 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ViewHolder> 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         int index = position * 3;
+
+        // Configurar ImageView1
         if (index < imageList.size()) {
             holder.imageView1.setImageBitmap(imageList.get(index));
             holder.imageView1.setVisibility(View.VISIBLE);
@@ -68,8 +70,11 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ViewHolder> 
                 removeImageCallback.onRemoveImage(index);
                 return true;
             });
+        } else {
+            holder.imageView1.setVisibility(View.GONE);
         }
 
+        // Configurar ImageView2
         if (index + 1 < imageList.size()) {
             holder.imageView2.setImageBitmap(imageList.get(index + 1));
             holder.imageView2.setVisibility(View.VISIBLE);
@@ -78,8 +83,11 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ViewHolder> 
                 removeImageCallback.onRemoveImage(index + 1);
                 return true;
             });
+        } else {
+            holder.imageView2.setVisibility(View.GONE);
         }
 
+        // Configurar ImageView3
         if (index + 2 < imageList.size()) {
             holder.imageView3.setImageBitmap(imageList.get(index + 2));
             holder.imageView3.setVisibility(View.VISIBLE);
@@ -88,6 +96,8 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ViewHolder> 
                 removeImageCallback.onRemoveImage(index + 2);
                 return true;
             });
+        } else {
+            holder.imageView3.setVisibility(View.GONE);
         }
     }
 

@@ -1,5 +1,7 @@
 <resources>
     <string name="app_name">WaterMarkApp</string>
     <string name="cargar_imagenes">Cargar Imágenes</string>
+    <color name="selected">#E0E0E0</color>
+    <color name="default_background">#FFFFFF</color>
     <!-- Otras cadenas que tengas -->
 </resources>

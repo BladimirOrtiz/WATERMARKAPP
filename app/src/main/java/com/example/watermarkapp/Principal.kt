@@ -3,6 +3,7 @@ package com.example.watermarkapp
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -18,12 +19,14 @@ import android.view.View
 import android.widget.*
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import java.io.IOException
 import java.io.InputStream
 import kotlin.math.min
 
@@ -42,6 +45,7 @@ class Principal : AppCompatActivity() {
             openGallery()
         } else {
             // Handle the case where permission is denied
+            Toast.makeText(this, "Permiso denegado", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -90,6 +94,11 @@ class Principal : AppCompatActivity() {
                 saveImageToGallery(bitmap, "imagen_marcada_$index.jpg")
             }
             showDownloadNotification()
+
+            // Limpiar la lista de imágenes después de la descarga
+            imageList.clear()
+            imageAdapter.notifyDataSetChanged()
+            updateLinearLayoutImages()
         }
     }
 
@@ -150,7 +159,7 @@ class Principal : AppCompatActivity() {
     private fun showWatermarkPositionDialog(watermark: Bitmap) {
         // Crear un AlertDialog para seleccionar la posición de la marca de agua
         val dialogView = layoutInflater.inflate(R.layout.dialog_watermark_position, null)
-        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setView(dialogView)
             .setTitle("Seleccionar posición de la marca de agua")
             .create()
@@ -233,7 +242,7 @@ class Principal : AppCompatActivity() {
 
     private fun updateLinearLayoutImages() {
         linearLayoutImages.removeAllViews()
-        for (i in 0 until imageList.size) {
+        for (i in imageList.indices) {
             val imageView = ImageView(this)
             imageView.layoutParams = LinearLayout.LayoutParams(100.dpToPx(), 100.dpToPx())
             imageView.setImageBitmap(imageList[i])
@@ -248,17 +257,26 @@ class Principal : AppCompatActivity() {
     }
 
     private fun saveImageToGallery(bitmap: Bitmap, fileName: String) {
-        val savedImageURL = MediaStore.Images.Media.insertImage(
-            contentResolver,
-            bitmap,
-            fileName,
-            "Imagen con marca de agua"
-        )
+        val contentValues = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, fileName)
+            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+            put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/${getString(R.string.app_name)}/")
+        }
 
-        if (savedImageURL != null) {
-            Log.d("Principal", "Imagen guardada en la galería: $savedImageURL")
-        } else {
-            Log.d("Principal", "Error al guardar la imagen.")
+        val uri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+
+        uri?.let { imageUri ->
+            try {
+                contentResolver.openOutputStream(imageUri)?.use { outputStream ->
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+                }
+                Log.d("Principal", "Imagen guardada en la galería: $fileName")
+            } catch (e: IOException) {
+                e.printStackTrace()
+                Log.d("Principal", "Error al guardar la imagen.")
+            }
+        } ?: run {
+            Log.d("Principal", "No se pudo obtener la URI para guardar la imagen.")
         }
     }
 
