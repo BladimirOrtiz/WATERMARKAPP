@@ -103,27 +103,30 @@ class Principal : AppCompatActivity() {
     }
 
     private fun checkAndRequestPermissions() {
-        when {
-            ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED -> {
-                // Permiso ya concedido
-            }
-            else -> {
-                requestPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
-            }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), PICK_IMAGES_REQUEST)
+        } else {
+            openGallery() // Si ya tenemos permiso, abrimos la galería
         }
     }
 
+
+    // Método para abrir la galería y permitir la selección múltiple de imágenes
     private fun openGallery() {
-        val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+        val intent = Intent(Intent.ACTION_GET_CONTENT) // Cambiamos a ACTION_GET_CONTENT
+        intent.type = "image/*"
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true) // Permitir selección múltiple
+        intent.addCategory(Intent.CATEGORY_OPENABLE)
         startActivityForResult(Intent.createChooser(intent, "Seleccionar Imágenes"), PICK_IMAGES_REQUEST)
     }
+
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
         if (requestCode == PICK_IMAGES_REQUEST && resultCode == RESULT_OK && data != null) {
             if (data.clipData != null) {
+                // Si se seleccionan múltiples imágenes
                 val count = data.clipData!!.itemCount
                 val limit = Math.min(count, MAX_IMAGES - imageList.size)
 
@@ -132,14 +135,19 @@ class Principal : AppCompatActivity() {
                     addImageFromUri(imageUri)
                 }
             } else if (data.data != null) {
+                // Si se selecciona una sola imagen
                 val imageUri = data.data
                 addImageFromUri(imageUri!!)
             }
             updateLinearLayoutImages()
             imageAdapter.notifyDataSetChanged()
+
+            // Controlar visibilidad del RecyclerView
             recyclerView.visibility = if (imageList.isNotEmpty()) View.VISIBLE else View.GONE
         }
     }
+
+
 
     private fun addImageFromUri(imageUri: Uri) {
         var imageStream: InputStream? = null

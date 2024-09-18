@@ -121,14 +121,12 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ViewHolder> 
                     dialog.dismiss();
                 })
                 .setNegativeButton("Sustituir", (dialog, which) -> {
-                    // Aquí puedes agregar la lógica para abrir una selección de imágenes
-                    // y reemplazar la imagen actual en la posición 'position'.
-                    // Por ahora, simularemos una nueva imagen con un Bitmap vacío.
-                    Bitmap newBitmap = Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_8888);
-                    replaceImageCallback.onReplaceImage(position, newBitmap);
+                    // Avisar al callback que queremos sustituir la imagen
+                    replaceImageCallback.onReplaceImage(position, null);
                     dialog.dismiss();
                 })
                 .create()
                 .show();
     }
+
 }
