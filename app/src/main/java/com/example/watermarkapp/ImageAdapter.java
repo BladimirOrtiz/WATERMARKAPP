@@ -16,25 +16,28 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ViewHolder> 
     private List<Bitmap> imageList;
     private final RemoveImageCallback removeImageCallback;
     private final ReplaceImageCallback replaceImageCallback;
+    private final ChangeWatermarkPositionCallback changeWatermarkPositionCallback;
 
-    // Constructor
-    public ImageAdapter(List<Bitmap> imageList, RemoveImageCallback removeImageCallback, ReplaceImageCallback replaceImageCallback) {
+    public ImageAdapter(List<Bitmap> imageList, RemoveImageCallback removeImageCallback, ReplaceImageCallback replaceImageCallback, ChangeWatermarkPositionCallback changeWatermarkPositionCallback) {
         this.imageList = imageList;
         this.removeImageCallback = removeImageCallback;
         this.replaceImageCallback = replaceImageCallback;
+        this.changeWatermarkPositionCallback = changeWatermarkPositionCallback;
     }
 
-    // Interfaz para manejar la eliminación de imágenes
     public interface RemoveImageCallback {
         void onRemoveImage(int position);
     }
 
-    // Interfaz para manejar la sustitución de imágenes
     public interface ReplaceImageCallback {
         void onReplaceImage(int position, Bitmap newBitmap);
     }
 
-    // ViewHolder para manejar la vista de cada elemento
+    // Interfaz para cambiar la posición de la marca de agua
+    public interface ChangeWatermarkPositionCallback {
+        void onChangeWatermarkPosition(int position);
+    }
+
     public static class ViewHolder extends RecyclerView.ViewHolder {
         public ImageView imageView1;
         public ImageView imageView2;
@@ -48,7 +51,6 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ViewHolder> 
         }
     }
 
-    // Inflar el layout para cada fila del RecyclerView
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -56,12 +58,10 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ViewHolder> 
         return new ViewHolder(view);
     }
 
-    // Vincular los datos con las vistas en la fila
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         int index = position * 3;
 
-        // Configurar ImageView1
         if (index < imageList.size()) {
             holder.imageView1.setImageBitmap(imageList.get(index));
             holder.imageView1.setVisibility(View.VISIBLE);
@@ -74,7 +74,6 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ViewHolder> 
             holder.imageView1.setVisibility(View.GONE);
         }
 
-        // Configurar ImageView2
         if (index + 1 < imageList.size()) {
             holder.imageView2.setImageBitmap(imageList.get(index + 1));
             holder.imageView2.setVisibility(View.VISIBLE);
@@ -87,7 +86,6 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ViewHolder> 
             holder.imageView2.setVisibility(View.GONE);
         }
 
-        // Configurar ImageView3
         if (index + 2 < imageList.size()) {
             holder.imageView3.setImageBitmap(imageList.get(index + 2));
             holder.imageView3.setVisibility(View.VISIBLE);
@@ -101,13 +99,11 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ViewHolder> 
         }
     }
 
-    // Indicar cuántas filas tiene la lista
     @Override
     public int getItemCount() {
         return (int) Math.ceil(imageList.size() / 3.0);
     }
 
-    // Mostrar la imagen en pantalla completa y permitir eliminarla o sustituirla
     private void showFullImageDialog(Context context, Bitmap bitmap, int position) {
         ImageView imageView = new ImageView(context);
         imageView.setImageBitmap(bitmap);
@@ -121,12 +117,13 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ViewHolder> 
                     dialog.dismiss();
                 })
                 .setNegativeButton("Sustituir", (dialog, which) -> {
-                    // Avisar al callback que queremos sustituir la imagen
                     replaceImageCallback.onReplaceImage(position, null);
                     dialog.dismiss();
+                })
+                .setOnCancelListener(dialog -> {
+                    changeWatermarkPositionCallback.onChangeWatermarkPosition(position);
                 })
                 .create()
                 .show();
     }
-
 }

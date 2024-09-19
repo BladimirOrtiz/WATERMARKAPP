@@ -40,11 +40,18 @@ class Principal : AppCompatActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var linearLayoutImages: LinearLayout
 
+    private val watermarkStatus = mutableMapOf<Bitmap, Boolean>()
+
+    private var Bitmap.isWatermarked: Boolean
+        get() = watermarkStatus[this] ?: false
+        set(value) {
+            watermarkStatus[this] = value
+        }
+
     private val requestPermissionLauncher: ActivityResultLauncher<String> = registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
         if (isGranted) {
             openGallery()
         } else {
-            // Handle the case where permission is denied
             Toast.makeText(this, "Permiso denegado", Toast.LENGTH_SHORT).show()
         }
     }
@@ -53,7 +60,6 @@ class Principal : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_principal)
 
-        // Inicializar las variables
         imageList = ArrayList()
         btnCargarImagenes = findViewById(R.id.btn_cargar_imagenes)
         recyclerView = findViewById(R.id.recycler_view)
@@ -61,10 +67,8 @@ class Principal : AppCompatActivity() {
         val btnColocar = findViewById<Button>(R.id.btn_colocar)
         val btnDescargar = findViewById<Button>(R.id.btn_descargar)
 
-        // Cargar la imagen de la marca de agua
         val watermarkBitmap = BitmapFactory.decodeResource(resources, R.drawable.logofcd)
 
-        // Configurar RecyclerView
         recyclerView.layoutManager = LinearLayoutManager(this)
         imageAdapter = ImageAdapter(imageList, { position ->
             imageList.removeAt(position)
@@ -74,28 +78,24 @@ class Principal : AppCompatActivity() {
             imageList[position] = newBitmap
             imageAdapter.notifyItemChanged(position)
             updateLinearLayoutImages()
+        }, { position ->
+            showWatermarkPositionDialog(watermarkBitmap)
         })
         recyclerView.adapter = imageAdapter
 
-        // Verificar y solicitar permisos
         checkAndRequestPermissions()
 
-        // Configurar botón para cargar imágenes
         btnCargarImagenes.setOnClickListener { openGallery() }
 
-        // Configurar botón para colocar marca de agua
         btnColocar.setOnClickListener {
             showWatermarkPositionDialog(watermarkBitmap)
         }
 
-        // Configurar botón para descargar imágenes con marca de agua
         btnDescargar.setOnClickListener {
             for ((index, bitmap) in imageList.withIndex()) {
                 saveImageToGallery(bitmap, "imagen_marcada_$index.jpg")
             }
             showDownloadNotification()
-
-            // Limpiar la lista de imágenes después de la descarga
             imageList.clear()
             imageAdapter.notifyDataSetChanged()
             updateLinearLayoutImages()
@@ -106,48 +106,39 @@ class Principal : AppCompatActivity() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), PICK_IMAGES_REQUEST)
         } else {
-            openGallery() // Si ya tenemos permiso, abrimos la galería
+            openGallery()
         }
     }
 
-
-    // Método para abrir la galería y permitir la selección múltiple de imágenes
     private fun openGallery() {
-        val intent = Intent(Intent.ACTION_GET_CONTENT) // Cambiamos a ACTION_GET_CONTENT
+        val intent = Intent(Intent.ACTION_GET_CONTENT)
         intent.type = "image/*"
-        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true) // Permitir selección múltiple
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
         intent.addCategory(Intent.CATEGORY_OPENABLE)
         startActivityForResult(Intent.createChooser(intent, "Seleccionar Imágenes"), PICK_IMAGES_REQUEST)
     }
-
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
         if (requestCode == PICK_IMAGES_REQUEST && resultCode == RESULT_OK && data != null) {
             if (data.clipData != null) {
-                // Si se seleccionan múltiples imágenes
                 val count = data.clipData!!.itemCount
-                val limit = Math.min(count, MAX_IMAGES - imageList.size)
+                val limit = min(count, MAX_IMAGES - imageList.size)
 
                 for (i in 0 until limit) {
                     val imageUri = data.clipData!!.getItemAt(i).uri
                     addImageFromUri(imageUri)
                 }
             } else if (data.data != null) {
-                // Si se selecciona una sola imagen
                 val imageUri = data.data
                 addImageFromUri(imageUri!!)
             }
             updateLinearLayoutImages()
             imageAdapter.notifyDataSetChanged()
-
-            // Controlar visibilidad del RecyclerView
             recyclerView.visibility = if (imageList.isNotEmpty()) View.VISIBLE else View.GONE
         }
     }
-
-
 
     private fun addImageFromUri(imageUri: Uri) {
         var imageStream: InputStream? = null
@@ -165,14 +156,12 @@ class Principal : AppCompatActivity() {
     }
 
     private fun showWatermarkPositionDialog(watermark: Bitmap) {
-        // Crear un AlertDialog para seleccionar la posición de la marca de agua
         val dialogView = layoutInflater.inflate(R.layout.dialog_watermark_position, null)
         val dialog = AlertDialog.Builder(this)
             .setView(dialogView)
             .setTitle("Seleccionar posición de la marca de agua")
             .create()
 
-        // Configurar los botones del dialogo
         val positions = listOf(
             R.id.top_left, R.id.top_center, R.id.top_right,
             R.id.center_left, R.id.center, R.id.center_right,
@@ -209,31 +198,30 @@ class Principal : AppCompatActivity() {
     }
 
     private fun calculateWatermarkSize(imageWidth: Int, imageHeight: Int): Float {
-        // Define un tamaño máximo para la marca de agua (por ejemplo, 25% del tamaño de la imagen)
         val maxWatermarkWidth = (imageWidth * 0.25).toInt()
         val maxWatermarkHeight = (imageHeight * 0.25).toInt()
-
-        // Ajusta el tamaño de la marca de agua para que encaje en el área segura
         val watermarkBitmap = BitmapFactory.decodeResource(resources, R.drawable.logofcd)
         val scaleFactor = minOf(
             maxWatermarkWidth.toFloat() / watermarkBitmap.width,
             maxWatermarkHeight.toFloat() / watermarkBitmap.height
         )
-
         return scaleFactor
     }
 
     private fun applyWatermarkWithPosition(watermark: Bitmap, horizontalBias: Float, verticalBias: Float) {
+        // Evitar aplicar la marca de agua si ya se ha hecho antes
+        if (imageList.all { it.isWatermarked }) {
+            Toast.makeText(this, "Las imágenes ya tienen la marca de agua.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         val updatedImages = imageList.map { originalBitmap ->
             val result = Bitmap.createBitmap(originalBitmap.width, originalBitmap.height, originalBitmap.config)
             val canvas = Canvas(result)
             canvas.drawBitmap(originalBitmap, 0f, 0f, null)
 
-            // Calcular tamaño y posición de la marca de agua
             val scaleFactor = calculateWatermarkSize(originalBitmap.width, originalBitmap.height)
             val resizedWatermark = resizeWatermark(watermark, scaleFactor)
-
-            // Calcular márgenes y posición
             val margin = 16.dpToPx()
             val left = (originalBitmap.width - resizedWatermark.width - margin) * horizontalBias
             val top = (originalBitmap.height - resizedWatermark.height - margin) * verticalBias
@@ -241,6 +229,9 @@ class Principal : AppCompatActivity() {
             canvas.drawBitmap(resizedWatermark, left, top, null)
             result
         }
+
+        // Marcar las imágenes como procesadas para evitar duplicación
+        updatedImages.forEach { it.isWatermarked = true }
 
         imageList.clear()
         imageList.addAll(updatedImages)
@@ -298,7 +289,7 @@ class Principal : AppCompatActivity() {
         }
 
         val notificationBuilder = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(R.drawable.ic_download)  // Asegúrate de que ic_download está en res/drawable
+            .setSmallIcon(R.drawable.ic_download)
             .setContentTitle("Descarga completada")
             .setContentText("Las imágenes con marca de agua se han guardado correctamente.")
             .setAutoCancel(true)
@@ -306,7 +297,6 @@ class Principal : AppCompatActivity() {
         notificationManager.notify(1, notificationBuilder.build())
     }
 
-    // Extensión para convertir dp a px
     private fun Int.dpToPx(): Int {
         val scale = resources.displayMetrics.density
         return (this * scale + 0.5f).toInt()
