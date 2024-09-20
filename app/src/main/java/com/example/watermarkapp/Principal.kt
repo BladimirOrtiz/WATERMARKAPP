@@ -35,6 +35,7 @@ class Principal : AppCompatActivity() {
     private val PICK_IMAGES_REQUEST = 1
     private val MAX_IMAGES = 10
     private lateinit var imageList: MutableList<Bitmap>
+    private lateinit var imageUriList: MutableList<Uri> // Para almacenar los URIs de las imágenes
     private lateinit var imageAdapter: ImageAdapter
     private lateinit var btnCargarImagenes: Button
     private lateinit var recyclerView: RecyclerView
@@ -61,6 +62,7 @@ class Principal : AppCompatActivity() {
         setContentView(R.layout.activity_principal)
 
         imageList = ArrayList()
+        imageUriList = ArrayList() // Inicializar la lista de URIs
         btnCargarImagenes = findViewById(R.id.btn_cargar_imagenes)
         recyclerView = findViewById(R.id.recycler_view)
         linearLayoutImages = findViewById(R.id.linear_layout_images)
@@ -97,6 +99,7 @@ class Principal : AppCompatActivity() {
             }
             showDownloadNotification()
             imageList.clear()
+            imageUriList.clear() // Limpiar también la lista de URIs
             imageAdapter.notifyDataSetChanged()
             updateLinearLayoutImages()
         }
@@ -141,12 +144,18 @@ class Principal : AppCompatActivity() {
     }
 
     private fun addImageFromUri(imageUri: Uri) {
+        if (imageUriList.contains(imageUri)) {
+            Toast.makeText(this, "La imagen ya ha sido seleccionada", Toast.LENGTH_SHORT).show()
+            return // Si la imagen ya existe, no la agregues
+        }
+
         var imageStream: InputStream? = null
         try {
             imageStream = contentResolver.openInputStream(imageUri)
             val bitmap = BitmapFactory.decodeStream(imageStream)
             if (imageList.size < MAX_IMAGES) {
                 imageList.add(bitmap)
+                imageUriList.add(imageUri) // Añadir el URI a la lista
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -209,7 +218,6 @@ class Principal : AppCompatActivity() {
     }
 
     private fun applyWatermarkWithPosition(watermark: Bitmap, horizontalBias: Float, verticalBias: Float) {
-        // Evitar aplicar la marca de agua si ya se ha hecho antes
         if (imageList.all { it.isWatermarked }) {
             Toast.makeText(this, "Las imágenes ya tienen la marca de agua.", Toast.LENGTH_SHORT).show()
             return
@@ -227,11 +235,9 @@ class Principal : AppCompatActivity() {
             val top = (originalBitmap.height - resizedWatermark.height - margin) * verticalBias
 
             canvas.drawBitmap(resizedWatermark, left, top, null)
+            result.isWatermarked = true
             result
         }
-
-        // Marcar las imágenes como procesadas para evitar duplicación
-        updatedImages.forEach { it.isWatermarked = true }
 
         imageList.clear()
         imageList.addAll(updatedImages)
@@ -247,6 +253,8 @@ class Principal : AppCompatActivity() {
             imageView.setImageBitmap(imageList[i])
             imageView.scaleType = ImageView.ScaleType.CENTER_CROP
             imageView.setOnClickListener {
+                watermarkStatus.remove(imageList[i])
+                imageUriList.removeAt(i) // Eliminar el URI correspondiente
                 imageList.removeAt(i)
                 updateLinearLayoutImages()
                 imageAdapter.notifyDataSetChanged()
@@ -256,49 +264,64 @@ class Principal : AppCompatActivity() {
     }
 
     private fun saveImageToGallery(bitmap: Bitmap, fileName: String) {
-        val contentValues = ContentValues().apply {
+        val values = ContentValues().apply {
             put(MediaStore.Images.Media.DISPLAY_NAME, fileName)
             put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
-            put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/${getString(R.string.app_name)}/")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/WatermarkedImages")
+                put(MediaStore.Images.Media.IS_PENDING, 1)
+            }
         }
 
-        val uri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+        val resolver = contentResolver
+        val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
 
-        uri?.let { imageUri ->
+        uri?.let { // Asegurarse de que el URI no sea nulo
             try {
-                contentResolver.openOutputStream(imageUri)?.use { outputStream ->
+                // Aquí verificamos si el OutputStream no es nulo
+                resolver.openOutputStream(uri)?.let { outputStream ->
+                    // Si no es nulo, procedemos a comprimir la imagen
                     bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+                    outputStream.close() // Cerramos el flujo de salida correctamente
+                } ?: run {
+                    Toast.makeText(this, "Error al abrir el flujo de salida", Toast.LENGTH_SHORT).show()
                 }
-                Log.d("Principal", "Imagen guardada en la galería: $fileName")
+
+                // Después de guardar la imagen, actualizamos el estado IS_PENDING si es necesario
+                values.clear()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    values.put(MediaStore.Images.Media.IS_PENDING, 0)
+                    resolver.update(uri, values, null, null)
+                }
+
+                Toast.makeText(this, "Imagen guardada", Toast.LENGTH_SHORT).show()
             } catch (e: IOException) {
                 e.printStackTrace()
-                Log.d("Principal", "Error al guardar la imagen.")
+                Toast.makeText(this, "Error al guardar la imagen", Toast.LENGTH_SHORT).show()
             }
-        } ?: run {
-            Log.d("Principal", "No se pudo obtener la URI para guardar la imagen.")
         }
     }
+
 
     private fun showDownloadNotification() {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val channelId = "watermark_download_channel"
-        val channelName = "Watermark Download"
+        val channelId = "download_channel"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_DEFAULT)
+            val channel = NotificationChannel(channelId, "Descargas", NotificationManager.IMPORTANCE_HIGH)
             notificationManager.createNotificationChannel(channel)
         }
 
-        val notificationBuilder = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(R.drawable.ic_download)
-            .setContentTitle("Descarga completada")
+        val notification = NotificationCompat.Builder(this, channelId)
+            .setContentTitle("Descarga completa")
             .setContentText("Las imágenes con marca de agua se han guardado correctamente.")
-            .setAutoCancel(true)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .build()
 
-        notificationManager.notify(1, notificationBuilder.build())
+        notificationManager.notify(1, notification)
     }
 
     private fun Int.dpToPx(): Int {
-        val scale = resources.displayMetrics.density
-        return (this * scale + 0.5f).toInt()
+        val density = resources.displayMetrics.density
+        return (this * density).toInt()
     }
 }
